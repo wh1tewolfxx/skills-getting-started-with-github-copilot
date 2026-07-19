@@ -21,19 +21,27 @@ def reset_activities():
 
 
 def test_unregister_participant_removes_email_from_activity():
+    # Arrange
     reset_activities()
+    email = "daniel@mergington.edu"
 
-    response = client.delete("/activities/Chess Club/unregister?email=daniel@mergington.edu")
+    # Act
+    response = client.delete(f"/activities/Chess Club/unregister?email={email}")
 
+    # Assert
     assert response.status_code == 200
-    assert response.json()["message"] == "Unregistered daniel@mergington.edu from Chess Club"
-    assert "daniel@mergington.edu" not in activities["Chess Club"]["participants"]
+    assert response.json()["message"] == f"Unregistered {email} from Chess Club"
+    assert email not in activities["Chess Club"]["participants"]
 
 
 def test_unregister_participant_returns_error_for_unknown_email():
+    # Arrange
     reset_activities()
+    email = "unknown@mergington.edu"
 
-    response = client.delete("/activities/Chess Club/unregister?email=unknown@mergington.edu")
+    # Act
+    response = client.delete(f"/activities/Chess Club/unregister?email={email}")
 
+    # Assert
     assert response.status_code == 404
     assert response.json()["detail"] == "Participant not found"
