@@ -20,14 +20,69 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        const participants = details.participants || [];
+        const participantsMarkup = participants.length > 0
+          ? `<div class="participants-list">${participants.map((participant) => `
+              <div class="participant-row" data-activity-name="${name}" data-participant-email="${participant}">
+                <span class="participant-email">${participant}</span>
+                <button type="button" class="participant-delete" aria-label="Unregister ${participant}" title="Unregister ${participant}">×</button>
+              </div>`).join("")}</div>`
+          : `<p class="participants-empty">No participants yet.</p>`;
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <h5>Participants</h5>
+            ${participantsMarkup}
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
+
+        activityCard.querySelectorAll(".participant-delete").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const participantRow = button.closest(".participant-row");
+            const activityName = participantRow.dataset.activityName;
+            const participantEmail = participantRow.dataset.participantEmail;
+
+            try {
+              const response = await fetch(
+                `/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(participantEmail)}`,
+                { method: "DELETE" }
+              );
+
+              const result = await response.json();
+
+              if (response.ok) {
+                messageDiv.textContent = result.message;
+                messageDiv.className = "success";
+                participantRow.remove();
+                if (!activityCard.querySelector(".participant-row")) {
+                  activityCard.querySelector(".participants-section").innerHTML = `
+                    <h5>Participants</h5>
+                    <p class="participants-empty">No participants yet.</p>
+                  `;
+                }
+              } else {
+                messageDiv.textContent = result.detail || "An error occurred";
+                messageDiv.className = "error";
+              }
+
+              messageDiv.classList.remove("hidden");
+              setTimeout(() => {
+                messageDiv.classList.add("hidden");
+              }, 5000);
+            } catch (error) {
+              messageDiv.textContent = "Failed to unregister participant.";
+              messageDiv.className = "error";
+              messageDiv.classList.remove("hidden");
+              console.error("Error unregistering participant:", error);
+            }
+          });
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
